@@ -39,118 +39,141 @@ apply_watermark() {
 export -f apply_watermark
 
 # =========================
-# PROCESS ROW
+# CSV PARSER (SAFE, NO PYTHON)
 # =========================
-process_row() {
+parse_csv_line() {
     line="$1"
 
-    awk -v line="$line" \
-        -v t1="$TEMPLATE1" \
-        -v t2="$TEMPLATE2" \
-        -v extra="$EXTRA_PDF_DIR" \
-        -v outdir="$OUTPUT_DIR" \
-        -v wm_dir="$WATERMARK_DIR" '
+    awk -v line="$line" '
     BEGIN {
-
-        # =========================
-        # SAFE CSV PARSING (FIX)
-        # =========================
         FPAT = "([^,]+)|(\"[^\"]+\")"
-
-        while ((getline header < "'"$INPUT"'") > 0) {
-            split(header, h, ",")
-            break
-        }
-
         split(line, f, ",")
 
-        for (i = 1; i <= length(h); i++) {
-            gsub(/^"|"$/, "", h[i])
+        for (i=1; i<=NF; i++) {
             gsub(/^"|"$/, "", f[i])
-            data[h[i]] = f[i]
+            print f[i]
         }
-
-        # =========================
-        # FILENAME (UNCHANGED LOGIC)
-        # =========================
-        name = data[h[1]]
-        gsub(/[^a-zA-Z0-9]/, "_", name)
-
-        workdir = outdir "/tmp_" rand()
-        system("mkdir -p \"" workdir "\"")
-
-        pdf_list = ""
-
-        templates[1] = t1
-        templates[2] = t2
-
-        # =========================
-        # TEMPLATE PROCESSING (UNCHANGED)
-        # =========================
-        for (t in templates) {
-
-            template = templates[t]
-            outfile = workdir "/" template
-
-            system("cp \"" template "\" \"" outfile "\"")
-
-            for (k in data) {
-                val = data[k]
-                gsub(/["\\\/&]/, "\\\\&", val)
-
-                cmd = "sed -i \"s/{{" k "}}/" val "/g\" \"" outfile "\""
-                system(cmd)
-            }
-
-            cmd = "cd \"" workdir "\" && pdflatex -interaction=nonstopmode \"" template "\" > /dev/null 2>&1"
-            system(cmd)
-
-            pdf = template
-            sub(/\.tex$/, ".pdf", pdf)
-
-            pdf_list = pdf_list " \"" workdir "/" pdf "\""
-        }
-
-        # =========================
-        # EXTRA PDFs + WATERMARK (UNCHANGED LOGIC)
-        # =========================
-        cmd = "ls \"" extra "\"/*.pdf 2>/dev/null | sort -V"
-
-        while ((cmd | getline extra_pdf) > 0) {
-
-            final_pdf = extra_pdf
-
-            if (extra_pdf ~ /\.wm\.pdf$/) {
-
-                wm_img = wm_dir "/default.png"
-                wm_out = workdir "/wm_" rand() ".pdf"
-
-                apply_cmd = "bash -c 'apply_watermark \"" extra_pdf "\" \"" wm_img "\" \"" wm_out "\"'"
-                system(apply_cmd)
-
-                final_pdf = wm_out
-            }
-
-            pdf_list = pdf_list " \"" final_pdf "\""
-        }
-
-        close(cmd)
-
-        # =========================
-        # OUTPUT
-        # =========================
-        final = outdir "/" name ".pdf"
-
-        print "Generating: " final
-
-        system("pdfunite " pdf_list " \"" final "\"")
-
-        system("rm -rf \"" workdir "\"")
     }'
 }
 
 # =========================
-# MAIN LOOP (UNCHANGED)
+# MAIN PROCESS
+# =========================
+process_row() {
+    line="$1"
+
+    # -------------------------
+    # Load header
+    # -------------------------
+    IFS=',' read -r -a headers <<< "$(head -n 1 "$INPUT")"
+
+    # -------------------------
+    # Load values safely (quoted CSV supported)
+    # -------------------------
+    mapfile -t values < <(awk -v line="$line" '
+    BEGIN {
+        FPAT="([^,]+)|(\"[^\"]+\")"
+        split(line, f, ",")
+        for (i=1; i<=length(f); i++) {
+            gsub(/^"|"$/, "", f[i])
+            print f[i]
+        }
+    }')
+
+    declare -A data
+
+    for i in "${!headers[@]}"; do
+        key="${headers[$i]}"
+        val="${values[$i]}"
+
+        key=$(echo "$key" | tr -d '"')
+        val=$(echo "$val" | tr -d '"')
+
+        data["$key"]="$val"
+    done
+
+    # -------------------------
+    # SAFE FILENAME
+    # -------------------------
+    name="${data[${headers[0]}]}"
+    name=$(echo "$name" | sed 's/[^a-zA-Z0-9]/_/g')
+
+    workdir="$OUTPUT_DIR/tmp_$RANDOM"
+    mkdir -p "$workdir"
+
+    pdf_list=""
+
+    # =========================
+    # TEMPLATE PROCESSING
+    # =========================
+    for template in "$TEMPLATE1" "$TEMPLATE2"; do
+
+        tpl_file=$(basename "$template")
+        cp "$template" "$workdir/"
+
+        # replace placeholders safely
+        while IFS= read -r key; do
+            val="${data[$key]}"
+
+            # LaTeX escaping (IMPORTANT FIX for runaway string)
+            val=$(echo "$val" | sed \
+                -e 's/\\/\\\\/g' \
+                -e 's/&/\\&/g' \
+                -e 's/%/\\%/g' \
+                -e 's/\$/\\$/g' \
+                -e 's/#/\\#/g' \
+                -e 's/_/\\_/g' \
+                -e 's/{/\\{/g' \
+                -e 's/}/\\}/g')
+
+            sed -i "s/{{${key}}}/${val}/g" "$workdir/$tpl_file"
+
+        done < <(printf "%s\n" "${headers[@]}")
+
+        (
+            cd "$workdir"
+            pdflatex -interaction=nonstopmode "$tpl_file" > latex.log 2>&1
+        )
+
+        pdf="${tpl_file%.tex}.pdf"
+        pdf_list="$pdf_list $workdir/$pdf"
+    done
+
+    # =========================
+    # EXTRA PDFs + WATERMARK
+    # =========================
+    for extra_pdf in "$EXTRA_PDF_DIR"/*.pdf; do
+        [ -e "$extra_pdf" ] || continue
+
+        final_pdf="$extra_pdf"
+
+        if [[ "$extra_pdf" == *.wm.pdf ]]; then
+            wm_img="$WATERMARK_DIR/default.png"
+            wm_out="$workdir/wm_$RANDOM.pdf"
+
+            # NO bash -c (FIXED)
+            apply_watermark "$extra_pdf" "$wm_img" "$wm_out"
+
+            final_pdf="$wm_out"
+        fi
+
+        pdf_list="$pdf_list $final_pdf"
+    done
+
+    # =========================
+    # FINAL MERGE
+    # =========================
+    final_pdf="$OUTPUT_DIR/${name}.pdf"
+
+    echo "Generating: $final_pdf"
+
+    pdfunite $pdf_list "$final_pdf"
+
+    rm -rf "$workdir"
+}
+
+# =========================
+# RUN (SAFE LOOP)
 # =========================
 tail -n +2 "$INPUT" | while IFS= read -r line; do
     process_row "$line"
