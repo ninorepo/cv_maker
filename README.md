@@ -15,7 +15,7 @@ FEATURES
 
 - Bulk generation of Cover Letter and CV (Bahasa Indonesia)
 - Header-based placeholders ({{nama}}, {{perusahaan}}, etc.)
-- Supports quoted CSV (e.g., "Jakarta, Indonesia")
+- Supports quoted CSV (example: "Jakarta, Indonesia")
 - Multiple templates per record
 - Automatic LaTeX compilation
 - Merge with additional PDFs (portfolio, certificates, etc.)
@@ -35,16 +35,16 @@ MAIN USE CASE
 PROJECT STRUCTURE
 
 project/
-|-- generate.sh
-|-- data.csv
-|-- templates/
-|   |-- cover_letter.tex
-|   \-- cv.tex
-|-- extra_pdfs/
-|   |-- 01_portfolio.pdf
-|   |-- 02_certificates.pdf
-|   \-- 03_appendix.pdf
-\-- output/
+- generate.sh
+- data.csv
+- templates/
+  - cover_letter.tex
+  - cv.tex
+- extra_pdfs/
+  - 01_portfolio.pdf
+  - 02_certificates.pdf
+  - 03_appendix.pdf
+- output/
 
 ------------------------------------------------------------
 
@@ -77,7 +77,7 @@ Alamat: {{alamat}}
 
 \end{document}
 
-Note:
+Notes:
 - Placeholders are case-sensitive
 - Must match CSV headers exactly
 
@@ -102,8 +102,8 @@ Install dependencies on Debian:
 sudo apt install texlive-latex-base poppler-utils
 
 Tools used:
-- pdflatex  (LaTeX compiler)
-- pdfunite  (PDF merge tool)
+- pdflatex (LaTeX compiler)
+- pdfunite (PDF merge tool)
 
 ------------------------------------------------------------
 
@@ -117,9 +117,9 @@ chmod +x generate.sh
 OUTPUT
 
 output/
-|-- PT Maju Jaya.pdf
-|-- PT Teknologi Baru.pdf
-`-- ...
+- PT Maju Jaya.pdf
+- PT Teknologi Baru.pdf
+- ...
 
 Each file contains:
 - Cover Letter (Bahasa Indonesia)
