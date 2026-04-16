@@ -39,63 +39,46 @@ apply_watermark() {
 export -f apply_watermark
 
 # =========================
-# CSV PARSER (SAFE, NO PYTHON)
-# =========================
-parse_csv_line() {
-    line="$1"
-
-    awk -v line="$line" '
-    BEGIN {
-        FPAT = "([^,]+)|(\"[^\"]+\")"
-        split(line, f, ",")
-
-        for (i=1; i<=NF; i++) {
-            gsub(/^"|"$/, "", f[i])
-            print f[i]
-        }
-    }'
-}
-
-# =========================
-# MAIN PROCESS
+# PROCESS ROW
 # =========================
 process_row() {
     line="$1"
 
     # -------------------------
-    # Load header
+    # SAFE CSV PARSE (mlr)
     # -------------------------
-    IFS=',' read -r -a headers <<< "$(head -n 1 "$INPUT")"
+    headers=$(head -n 1 "$INPUT")
 
-    # -------------------------
-    # Load values safely (quoted CSV supported)
-    # -------------------------
-    mapfile -t values < <(awk -v line="$line" '
-    BEGIN {
-        FPAT="([^,]+)|(\"[^\"]+\")"
-        split(line, f, ",")
-        for (i=1; i<=length(f); i++) {
-            gsub(/^"|"$/, "", f[i])
-            print f[i]
-        }
-    }')
+    values=$(echo "$line")
 
+    # convert line into key-value pairs using mlr
+    eval "$(echo "$headers" | tr ',' '\n' | awk '{print "h["NR"]="$0}')"
+
+    # convert current CSV row into array
+    mapfile -t fields < <(
+        echo "$line" | mlr --csv cat | mlr --ocsv cat
+    )
+
+    # fallback: proper mlr extraction (SAFE)
     declare -A data
 
-    for i in "${!headers[@]}"; do
-        key="${headers[$i]}"
-        val="${values[$i]}"
+    IFS=',' read -r -a header_arr <<< "$headers"
 
+    i=0
+    for key in "${header_arr[@]}"; do
         key=$(echo "$key" | tr -d '"')
-        val=$(echo "$val" | tr -d '"')
 
-        data["$key"]="$val"
+        value=$(echo "$line" | mlr --csv cut -f "$key" | tail -n +2)
+
+        data["$key"]="$value"
+
+        ((i++))
     done
 
     # -------------------------
     # SAFE FILENAME
     # -------------------------
-    name="${data[${headers[0]}]}"
+    name="${data[${header_arr[0]}]}"
     name=$(echo "$name" | sed 's/[^a-zA-Z0-9]/_/g')
 
     workdir="$OUTPUT_DIR/tmp_$RANDOM"
@@ -111,12 +94,16 @@ process_row() {
         tpl_file=$(basename "$template")
         cp "$template" "$workdir/"
 
+        content=$(cat "$workdir/$tpl_file")
+
         # replace placeholders safely
-        while IFS= read -r key; do
+        for key in "${header_arr[@]}"; do
+            key=$(echo "$key" | tr -d '"')
+
             val="${data[$key]}"
 
-            # LaTeX escaping (IMPORTANT FIX for runaway string)
-            val=$(echo "$val" | sed \
+            # LaTeX escape (CRITICAL FIX)
+            val=$(printf '%s' "$val" | sed \
                 -e 's/\\/\\\\/g' \
                 -e 's/&/\\&/g' \
                 -e 's/%/\\%/g' \
@@ -126,9 +113,10 @@ process_row() {
                 -e 's/{/\\{/g' \
                 -e 's/}/\\}/g')
 
-            sed -i "s/{{${key}}}/${val}/g" "$workdir/$tpl_file"
+            content=${content//"{{$key}}"/$val}
+        done
 
-        done < <(printf "%s\n" "${headers[@]}")
+        echo "$content" > "$workdir/$tpl_file"
 
         (
             cd "$workdir"
@@ -151,9 +139,7 @@ process_row() {
             wm_img="$WATERMARK_DIR/default.png"
             wm_out="$workdir/wm_$RANDOM.pdf"
 
-            # NO bash -c (FIXED)
             apply_watermark "$extra_pdf" "$wm_img" "$wm_out"
-
             final_pdf="$wm_out"
         fi
 
@@ -161,7 +147,7 @@ process_row() {
     done
 
     # =========================
-    # FINAL MERGE
+    # FINAL OUTPUT
     # =========================
     final_pdf="$OUTPUT_DIR/${name}.pdf"
 
@@ -173,8 +159,8 @@ process_row() {
 }
 
 # =========================
-# RUN (SAFE LOOP)
+# MAIN LOOP (MLR FIXED CSV INPUT)
 # =========================
-tail -n +2 "$INPUT" | while IFS= read -r line; do
+mlr --csv cat "$INPUT" | tail -n +2 | while IFS= read -r line; do
     process_row "$line"
 done
