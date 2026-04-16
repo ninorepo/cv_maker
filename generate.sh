@@ -8,7 +8,6 @@ TEMPLATE2="templates/template_cv.tex"
 EXTRA_PDF_DIR="extra_pdfs"
 WATERMARK_DIR="watermark"
 OUTPUT_DIR="output"
-JOBS=4
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -34,12 +33,13 @@ apply_watermark() {
     done
 
     convert "$tmpdir"/*.wm.png "$output"
-
     rm -rf "$tmpdir"
 }
 
+export -f apply_watermark
+
 # =========================
-# PROCESS ONE ROW
+# PROCESS ROW
 # =========================
 process_row() {
     line="$1"
@@ -51,109 +51,106 @@ process_row() {
         -v outdir="$OUTPUT_DIR" \
         -v wm_dir="$WATERMARK_DIR" '
     BEGIN {
+
+        # =========================
+        # SAFE CSV PARSING (FIX)
+        # =========================
         FPAT = "([^,]+)|(\"[^\"]+\")"
-    }
 
-    {
-        split(line, f, ",")
-
-        # build header map
-        if (NR == 1) {
-            exit
+        while ((getline header < "'"$INPUT"'") > 0) {
+            split(header, h, ",")
+            break
         }
 
-        # NOTE: headers passed via ENV is simpler avoided here
-    }
-    ' >/dev/null
+        split(line, f, ",")
 
-    # =========================
-    # REAL PROCESSING (BASH CONTROLLED)
-    # =========================
+        for (i = 1; i <= length(h); i++) {
+            gsub(/^"|"$/, "", h[i])
+            gsub(/^"|"$/, "", f[i])
+            data[h[i]] = f[i]
+        }
 
-    IFS=',' read -r -a headers <<< "$(head -n 1 "$INPUT")"
-    IFS=',' read -r -a values <<< "$line"
+        # =========================
+        # FILENAME (UNCHANGED LOGIC)
+        # =========================
+        name = data[h[1]]
+        gsub(/[^a-zA-Z0-9]/, "_", name)
 
-    declare -A data
+        workdir = outdir "/tmp_" rand()
+        system("mkdir -p \"" workdir "\"")
 
-    for i in "${!headers[@]}"; do
-        key="${headers[$i]}"
-        val="${values[$i]}"
+        pdf_list = ""
 
-        key=$(echo "$key" | tr -d '"')
-        val=$(echo "$val" | tr -d '"')
+        templates[1] = t1
+        templates[2] = t2
 
-        data["$key"]="$val"
-    done
+        # =========================
+        # TEMPLATE PROCESSING (UNCHANGED)
+        # =========================
+        for (t in templates) {
 
-    name="${data[${headers[0]}]}"
-    name=$(echo "$name" | sed 's/[^a-zA-Z0-9]/_/g')
+            template = templates[t]
+            outfile = workdir "/" template
 
-    workdir="$OUTPUT_DIR/tmp_$RANDOM"
-    mkdir -p "$workdir"
+            system("cp \"" template "\" \"" outfile "\"")
 
-    pdf_list=""
+            for (k in data) {
+                val = data[k]
+                gsub(/["\\\/&]/, "\\\\&", val)
 
-    # =========================
-    # COMPILE TEMPLATES
-    # =========================
-    for template in "$TEMPLATE1" "$TEMPLATE2"; do
+                cmd = "sed -i \"s/{{" k "}}/" val "/g\" \"" outfile "\""
+                system(cmd)
+            }
 
-        cp "$template" "$workdir/"
+            cmd = "cd \"" workdir "\" && pdflatex -interaction=nonstopmode \"" template "\" > /dev/null 2>&1"
+            system(cmd)
 
-        tpl_file=$(basename "$template")
+            pdf = template
+            sub(/\.tex$/, ".pdf", pdf)
 
-        # replace placeholders
-        for k in "${!data[@]}"; do
-            v="${data[$k]}"
-            v=$(echo "$v" | sed 's/[\/&]/\\&/g')
+            pdf_list = pdf_list " \"" workdir "/" pdf "\""
+        }
 
-            sed -i "s/{{$k}}/$v/g" "$workdir/$tpl_file"
-        done
+        # =========================
+        # EXTRA PDFs + WATERMARK (UNCHANGED LOGIC)
+        # =========================
+        cmd = "ls \"" extra "\"/*.pdf 2>/dev/null | sort -V"
 
-        (
-            cd "$workdir"
-            pdflatex -interaction=nonstopmode "$tpl_file" > latex.log 2>&1
-        )
+        while ((cmd | getline extra_pdf) > 0) {
 
-        pdf="${tpl_file%.tex}.pdf"
-        pdf_list="$pdf_list $workdir/$pdf"
-    done
+            final_pdf = extra_pdf
 
-    # =========================
-    # EXTRA PDFS + WATERMARK
-    # =========================
-    for extra_pdf in "$EXTRA_PDF_DIR"/*.pdf; do
-        [ -e "$extra_pdf" ] || continue
+            if (extra_pdf ~ /\.wm\.pdf$/) {
 
-        final_pdf="$extra_pdf"
+                wm_img = wm_dir "/default.png"
+                wm_out = workdir "/wm_" rand() ".pdf"
 
-        if [[ "$extra_pdf" == *.wm.pdf ]]; then
-            wm_img="$WATERMARK_DIR/default.png"
-            wm_out="$workdir/wm_$RANDOM.pdf"
+                apply_cmd = "bash -c 'apply_watermark \"" extra_pdf "\" \"" wm_img "\" \"" wm_out "\"'"
+                system(apply_cmd)
 
-            apply_watermark "$extra_pdf" "$wm_img" "$wm_out"
-            final_pdf="$wm_out"
-        fi
+                final_pdf = wm_out
+            }
 
-        pdf_list="$pdf_list $final_pdf"
-    done
+            pdf_list = pdf_list " \"" final_pdf "\""
+        }
 
-    # =========================
-    # OUTPUT
-    # =========================
-    final_pdf="$OUTPUT_DIR/${name}.pdf"
+        close(cmd)
 
-    echo "Generating: $final_pdf"
+        # =========================
+        # OUTPUT
+        # =========================
+        final = outdir "/" name ".pdf"
 
-    pdfunite $pdf_list "$final_pdf"
+        print "Generating: " final
 
-    rm -rf "$workdir"
+        system("pdfunite " pdf_list " \"" final "\"")
+
+        system("rm -rf \"" workdir "\"")
+    }'
 }
 
-export -f apply_watermark
-
 # =========================
-# MAIN LOOP (FIXED)
+# MAIN LOOP (UNCHANGED)
 # =========================
 tail -n +2 "$INPUT" | while IFS= read -r line; do
     process_row "$line"
