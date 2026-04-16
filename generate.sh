@@ -12,9 +12,9 @@ OUTPUT_DIR="output"
 mkdir -p "$OUTPUT_DIR"
 
 # =========================
-# DEPENDENCY CHECK
+# DEPENDENCIES CHECK
 # =========================
-for cmd in mlr jq pdflatex pdftoppm convert pdfunite; do
+for cmd in mlr pdflatex pdftoppm convert pdfunite; do
     command -v "$cmd" >/dev/null 2>&1 || {
         echo "Missing dependency: $cmd"
         exit 1
@@ -22,7 +22,7 @@ for cmd in mlr jq pdflatex pdftoppm convert pdfunite; do
 done
 
 # =========================
-# WATERMARK FUNCTION
+# WATERMARK
 # =========================
 apply_watermark() {
     local input="$1"
@@ -69,32 +69,29 @@ escape_latex() {
 # PROCESS ROW
 # =========================
 process_row() {
-    local json="$1"
-
-    declare -A data
-    data=()
-
-    while IFS="=" read -r k v; do
-        data["$k"]="$v"
-    done < <(echo "$json" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
+    local company="$1"
+    local company_address="$2"
+    local applicant="$3"
+    local birthplace="$4"
+    local home="$5"
+    local phone="$6"
+    local email="$7"
+    local latest_education="$8"
+    local current_education="$9"
 
     # =========================
-    # SAFE FILENAME (FINAL RULE)
-    # field1 + field2: lowercase, remove whitespace only
+    # FILENAME RULE (NO SPACE, LOWERCASE)
     # =========================
-    local field1 field2 name
-
-    field1="${data[${header_arr[0]}]:-output}"
-    field2="${data[${header_arr[1]}]:-data}"
-
     sanitize_no_space() {
         echo "$1" \
             | tr '[:upper:]' '[:lower:]' \
             | tr -d '[:space:]'
     }
 
-    field1=$(sanitize_no_space "$field1")
-    field2=$(sanitize_no_space "$field2")
+    local field1 field2 name
+
+    field1=$(sanitize_no_space "$company")
+    field2=$(sanitize_no_space "$applicant")
 
     name="${field1}_${field2}"
 
@@ -107,21 +104,23 @@ process_row() {
     # TEMPLATE PROCESSING
     # =========================
     for template in "$TEMPLATE1" "$TEMPLATE2"; do
+        local tpl_file content
 
-        local tpl_file
         tpl_file=$(basename "$template")
-
         cp "$template" "$workdir/"
 
-        local content
         content=$(cat "$workdir/$tpl_file")
 
-        for key in "${!data[@]}"; do
-            val="${data[$key]}"
-            val=$(escape_latex "$val")
-
-            content=${content//"{{$key}}"/$val}
-        done
+        # replace variables
+        content=${content//"{{company}}"/$(escape_latex "$company")}
+        content=${content//"{{company_address}}"/$(escape_latex "$company_address")}
+        content=${content//"{{applicant}}"/$(escape_latex "$applicant")}
+        content=${content//"{{birthplace}}"/$(escape_latex "$birthplace")}
+        content=${content//"{{home}}"/$(escape_latex "$home")}
+        content=${content//"{{phone}}"/$(escape_latex "$phone")}
+        content=${content//"{{email}}"/$(escape_latex "$email")}
+        content=${content//"{{latest_education}}"/$(escape_latex "$latest_education")}
+        content=${content//"{{current_education}}"/$(escape_latex "$current_education")}
 
         echo "$content" > "$workdir/$tpl_file"
 
@@ -142,10 +141,9 @@ process_row() {
         local final_pdf="$extra_pdf"
 
         if [[ "$extra_pdf" == *.wm.pdf ]]; then
-            local wm_img="$WATERMARK_DIR/default.png"
             local wm_out="$workdir/wm_$(basename "$extra_pdf")"
 
-            apply_watermark "$extra_pdf" "$wm_img" "$wm_out"
+            apply_watermark "$extra_pdf" "$WATERMARK_DIR/default.png" "$wm_out"
             final_pdf="$wm_out"
         fi
 
@@ -154,7 +152,7 @@ process_row() {
     shopt -u nullglob
 
     # =========================
-    # FINAL OUTPUT
+    # OUTPUT FILE
     # =========================
     local final_pdf="$OUTPUT_DIR/${name}.pdf"
 
@@ -168,10 +166,10 @@ process_row() {
 export -f process_row
 
 # =========================
-# MAIN LOOP
+# MAIN LOOP (MLR ONLY SAFE CSV)
 # =========================
-mlr --icsv --ojson cat "$INPUT" \
-    | jq -c '.[]' \
-    | while read -r row; do
-        process_row "$row"
-    done
+mlr --icsv --opprint cat "$INPUT" \
+| tail -n +2 \
+| while IFS=$'\t' read -r company company_address applicant birthplace home phone email latest_education current_education; do
+    process_row "$company" "$company_address" "$applicant" "$birthplace" "$home" "$phone" "$email" "$latest_education" "$current_education"
+done
