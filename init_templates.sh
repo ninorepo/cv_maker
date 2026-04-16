@@ -5,10 +5,6 @@ TEMPLATE_DIR="templates"
 TMP_ROOT=".tmp_render"
 CSV_FILE="data.csv"
 
-# Clean previous run
-rm -rf "$TMP_ROOT"
-mkdir -p "$TMP_ROOT"
-
 awk -v template_dir="$TEMPLATE_DIR" -v root="$TMP_ROOT" '
 function trim_quotes(s) {
     sub(/^"/, "", s)
