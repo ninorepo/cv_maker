@@ -4,45 +4,60 @@ set -euo pipefail
 ATTACH_DIR="attachments"
 WATERMARK_DIR="watermarks"
 TMP_ROOT=".tmp_render"
-STAGING="$TMP_ROOT/.attachments"
+STAGING="$TMP_ROOT/_attachments"
 WATERMARK="$WATERMARK_DIR/default.png"
 
+# clean workspace
 rm -rf "$TMP_ROOT"
 mkdir -p "$STAGING"
 
-# ---------------------------------------
-# 1. Process .wm.pdf (KEEP ORIGINAL NAME)
-# ---------------------------------------
+echo "==> Preparing attachments..."
+
+# --------------------------------------------------
+# 1. Process WATERMARKED PDFs (*.wm.pdf)
+# --------------------------------------------------
 find "$ATTACH_DIR" -type f -name "*.wm.pdf" | while read -r pdf; do
 
     filename="$(basename "$pdf")"
     base="${filename%.wm.pdf}"
 
-    echo "Watermarking: $filename"
+    echo "Watermark processing: $filename"
 
-    workdir="$STAGING/.tmp_${base}"
+    workdir="$TMP_ROOT/.tmp_${base}"
     mkdir -p "$workdir"
 
-    # PDF -> PNG pages
+    # PDF → PNG pages
     pdftoppm -png "$pdf" "$workdir/page"
 
-    # apply watermark
+    # apply watermark on each page
     for img in "$workdir"/page-*.png; do
-        convert "$img" "$WATERMARK" -gravity center -compose over -composite "$img"
+        convert "$img" "$WATERMARK" \
+            -gravity center \
+            -compose over \
+            -composite \
+            "$img"
     done
 
-    # PNG -> PDF (KEEP SAME NAME AS ORIGINAL FILE)
-    convert "$workdir"/page-*.png "$STAGING/$filename"
+    # PNG → PDF (SAFE, no ImageMagick PDF handling)
+    img2pdf "$workdir"/page-*.png -o "$STAGING/$filename"
 
+    # cleanup temp images
     rm -rf "$workdir"
 
 done
 
-# ---------------------------------------
-# 2. Copy normal PDFs (UNCHANGED NAMES)
-# ---------------------------------------
+# --------------------------------------------------
+# 2. Copy NORMAL PDFs (unchanged filenames)
+# --------------------------------------------------
 find "$ATTACH_DIR" -type f -name "*.pdf" ! -name "*.wm.pdf" | while read -r pdf; do
+
     filename="$(basename "$pdf")"
+
     echo "Copying: $filename"
+
     cp "$pdf" "$STAGING/$filename"
+
 done
+
+echo "==> Attachment staging complete:"
+echo "    $STAGING"
