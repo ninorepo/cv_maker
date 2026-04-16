@@ -11,11 +11,15 @@ find "$TMP_ROOT" -maxdepth 1 -type d -name ".*" | while read -r rowdir; do
 
     echo "Processing row: $(basename "$rowdir")"
 
-    # skip if no attachments
+    # create per-row attachments folder
+    ROW_ATTACH="$rowdir/attachments"
+    mkdir -p "$ROW_ATTACH"
+
+    # skip if source doesn't exist
     [[ -d "$ATTACH_DIR" ]] || continue
 
-    # copy all PDFs into row folder
-    find "$ATTACH_DIR" -type f -name "*.pdf" -exec cp -f {} "$rowdir/" \;
+    # copy all PDFs into row attachments folder
+    find "$ATTACH_DIR" -type f -name "*.pdf" -exec cp -f {} "$ROW_ATTACH/" \;
 
 done
 
