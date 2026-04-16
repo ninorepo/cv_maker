@@ -4,7 +4,7 @@ set -euo pipefail
 ATTACH_DIR="attachments"
 WATERMARK_DIR="watermarks"
 TMP_ROOT=".tmp_render"
-STAGING="$TMP_ROOT/_attachments"
+STAGING="$TMP_ROOT/.attachments"
 WATERMARK="$WATERMARK_DIR/default.png"
 
 rm -rf "$TMP_ROOT"
