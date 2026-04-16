@@ -4,5 +4,6 @@
 ./init_templates_watermark.sh
 ./compile_templates.sh
 ./build_watermark.sh
-./init_attachments_wmburn.sh
+./init_attachments.sh
+./burn_watermarks.sh
 ./clear.sh
