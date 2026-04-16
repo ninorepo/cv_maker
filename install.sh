@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 echo "Updating package list..."
@@ -15,42 +14,28 @@ sudo apt install -y \
     poppler-utils \
     imagemagick \
     ghostscript \
-    miller \
-    coreutils \
-    gawk \
-    sed \
-    findutils
+    mlr
 
 echo "Checking installations..."
 
-# -------------------------
+check() {
+    command -v "$1" >/dev/null 2>&1 && echo "$1 OK" || echo "$1 MISSING"
+}
+
 # LaTeX
-# -------------------------
-command -v pdflatex >/dev/null 2>&1 && echo "pdflatex OK" || echo "pdflatex MISSING"
+check pdflatex
 
-# -------------------------
-# PDF merge
-# -------------------------
-command -v pdfunite >/dev/null 2>&1 && echo "pdfunite OK" || echo "pdfunite MISSING"
+# PDF tools
+check pdfunite
+check pdftoppm
 
-# -------------------------
-# CSV tool (mlr)
-# -------------------------
-command -v mlr >/dev/null 2>&1 && echo "mlr OK" || echo "mlr MISSING"
+# CSV tool
+check mlr
 
-# -------------------------
-# ImageMagick
-# -------------------------
-command -v convert >/dev/null 2>&1 && echo "ImageMagick OK" || echo "ImageMagick MISSING"
+# ImageMagick (new + old compatibility)
+check magick || check convert
 
-# -------------------------
-# PDF raster tool
-# -------------------------
-command -v pdftoppm >/dev/null 2>&1 && echo "pdftoppm OK" || echo "pdftoppm MISSING"
-
-# -------------------------
 # Ghostscript
-# -------------------------
-command -v gs >/dev/null 2>&1 && echo "ghostscript OK" || echo "ghostscript MISSING"
+check gs
 
 echo "Done."
