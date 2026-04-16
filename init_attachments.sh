@@ -7,10 +7,6 @@ TMP_ROOT=".tmp_render"
 STAGING="$TMP_ROOT/_attachments"
 WATERMARK="$WATERMARK_DIR/default.png"
 
-# clean workspace
-rm -rf "$TMP_ROOT"
-mkdir -p "$STAGING"
-
 echo "==> Preparing attachments..."
 
 # --------------------------------------------------
