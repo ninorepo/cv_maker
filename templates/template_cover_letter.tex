@@ -1,8 +1,51 @@
-\documentclass{article}
-\begin{document}
+\documentclass[11pt,a4paper]{letter}
+\usepackage[left=3cm,right=3cm,top=1cm,bottom=1cm]{geometry}
+\usepackage[indonesian]{babel}
+\usepackage{setspace}
 
-Name: {{name}} \\
-Age: {{age}} \\
-Address: {{address}}
+\begin{document}
+\onehalfspacing
+
+\begin{letter}{%
+Kepada Yth.\\
+Human Resource Department\\
+{{company}}\\ %perusahaan
+{{company_address}} %alamat perusahaan
+}
+
+\opening{Dengan hormat,}
+
+Melalui surat ini saya mengajukan lamaran kerja untuk posisi \textbf{(Nama Posisi)} di perusahaan yang Bapak/Ibu pimpin.
+
+Saya yang bertanda tangan di bawah ini:
+
+\begin{tabbing}
+Nama \hspace{3cm} \= : \textbf{ {{applicant}} } \\
+Tempat, Tanggal Lahir \> : {{birthplace}} \\
+Pendidikan Terakhir \> : {{latest_education}} \\
+Pendidikan Berjalan \> : {{current_education}} \\
+Alamat \> : {{home}} \\
+No. Telepon \> : {{phone}} \\
+Email \> : {{email}}
+\end{tabbing}
+
+Sebagai bahan pertimbangan, bersama surat ini saya lampirkan:
+\begin{itemize}
+\item Surat Lamaran
+\item Daftar Riwayat Hidup (CV)
+\item Fotokopi/Ijazah dan Transkrip Nilai
+\item Fotokopi KTP
+\item Surat Pengalaman Kerja
+\end{itemize}
+
+Demikian surat lamaran ini saya sampaikan. Atas perhatian Bapak/Ibu, saya ucapkan terima kasih.
+
+\closing{Hormat saya,}
+
+\vspace{1.5cm}
+
+\textbf{ {{applicant}} }
+
+\end{letter}
 
 \end{document}
