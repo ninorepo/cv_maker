@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 INPUT="data.csv"
 TEMPLATE1="templates/template_cover_letter.tex"
@@ -12,18 +12,29 @@ OUTPUT_DIR="output"
 mkdir -p "$OUTPUT_DIR"
 
 # =========================
+# DEPENDENCY CHECK
+# =========================
+for cmd in mlr jq pdflatex pdftoppm convert pdfunite; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+        echo "Missing dependency: $cmd"
+        exit 1
+    }
+done
+
+# =========================
 # WATERMARK FUNCTION
 # =========================
 apply_watermark() {
-    input="$1"
-    wm="$2"
-    output="$3"
+    local input="$1"
+    local wm="$2"
+    local output="$3"
 
-    tmpdir=$(mktemp -d)
+    local tmpdir
+    tmpdir=$(mktemp -d -t wm.XXXXXX)
 
-    pdftoppm "$input" "$tmpdir/page" -png
+    pdftoppm "$input" "$tmpdir/page" -png >/dev/null 2>&1
 
-    for img in "$tmpdir"/page-*.png; do
+    for img in $(ls -1v "$tmpdir"/page-*.png); do
         convert "$img" "$wm" \
             -gravity center \
             -compose dissolve \
@@ -32,86 +43,69 @@ apply_watermark() {
             "$img.wm.png"
     done
 
-    convert "$tmpdir"/*.wm.png "$output"
+    convert $(ls -1v "$tmpdir"/*.wm.png) "$output"
+
     rm -rf "$tmpdir"
 }
 
 export -f apply_watermark
 
 # =========================
+# SAFE LATEX ESCAPE
+# =========================
+escape_latex() {
+    printf '%s' "$1" | sed \
+        -e 's/\\/\\\\/g' \
+        -e 's/&/\\&/g' \
+        -e 's/%/\\%/g' \
+        -e 's/\$/\\$/g' \
+        -e 's/#/\\#/g' \
+        -e 's/_/\\_/g' \
+        -e 's/{/\\{/g' \
+        -e 's/}/\\}/g'
+}
+
+# =========================
 # PROCESS ROW
 # =========================
 process_row() {
-    line="$1"
+    local json="$1"
 
-    # -------------------------
-    # SAFE CSV PARSE (mlr)
-    # -------------------------
-    headers=$(head -n 1 "$INPUT")
-
-    values=$(echo "$line")
-
-    # convert line into key-value pairs using mlr
-    eval "$(echo "$headers" | tr ',' '\n' | awk '{print "h["NR"]="$0}')"
-
-    # convert current CSV row into array
-    mapfile -t fields < <(
-        echo "$line" | mlr --csv cat | mlr --ocsv cat
-    )
-
-    # fallback: proper mlr extraction (SAFE)
     declare -A data
+    data=()
 
-    IFS=',' read -r -a header_arr <<< "$headers"
+    # parse JSON -> associative array
+    while IFS="=" read -r k v; do
+        data["$k"]="$v"
+    done < <(echo "$json" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
 
-    i=0
-    for key in "${header_arr[@]}"; do
-        key=$(echo "$key" | tr -d '"')
-
-        value=$(echo "$line" | mlr --csv cut -f "$key" | tail -n +2)
-
-        data["$key"]="$value"
-
-        ((i++))
-    done
-
-    # -------------------------
-    # SAFE FILENAME
-    # -------------------------
-    name="${data[${header_arr[0]}]}"
+    # safe filename
+    local name
+    name="${data[0]:-output}"
     name=$(echo "$name" | sed 's/[^a-zA-Z0-9]/_/g')
 
-    workdir="$OUTPUT_DIR/tmp_$RANDOM"
-    mkdir -p "$workdir"
+    local workdir
+    workdir=$(mktemp -d -t pdfgen.XXXXXX)
 
-    pdf_list=""
+    local pdf_list=()
 
     # =========================
     # TEMPLATE PROCESSING
     # =========================
     for template in "$TEMPLATE1" "$TEMPLATE2"; do
 
+        local tpl_file
         tpl_file=$(basename "$template")
+
         cp "$template" "$workdir/"
 
+        local content
         content=$(cat "$workdir/$tpl_file")
 
-        # replace placeholders safely
-        for key in "${header_arr[@]}"; do
-            key=$(echo "$key" | tr -d '"')
-
+        # replace placeholders
+        for key in "${!data[@]}"; do
             val="${data[$key]}"
-
-            # LaTeX escape (CRITICAL FIX)
-            val=$(printf '%s' "$val" | sed \
-                -e 's/\\/\\\\/g' \
-                -e 's/&/\\&/g' \
-                -e 's/%/\\%/g' \
-                -e 's/\$/\\$/g' \
-                -e 's/#/\\#/g' \
-                -e 's/_/\\_/g' \
-                -e 's/{/\\{/g' \
-                -e 's/}/\\}/g')
+            val=$(escape_latex "$val")
 
             content=${content//"{{$key}}"/$val}
         done
@@ -120,47 +114,51 @@ process_row() {
 
         (
             cd "$workdir"
-            pdflatex -interaction=nonstopmode "$tpl_file" > latex.log 2>&1
+            pdflatex -interaction=nonstopmode -halt-on-error "$tpl_file" > latex.log 2>&1
         )
 
-        pdf="${tpl_file%.tex}.pdf"
-        pdf_list="$pdf_list $workdir/$pdf"
+        pdf_list+=("$workdir/${tpl_file%.tex}.pdf")
     done
 
     # =========================
     # EXTRA PDFs + WATERMARK
     # =========================
+    shopt -s nullglob
     for extra_pdf in "$EXTRA_PDF_DIR"/*.pdf; do
-        [ -e "$extra_pdf" ] || continue
 
-        final_pdf="$extra_pdf"
+        local final_pdf="$extra_pdf"
 
         if [[ "$extra_pdf" == *.wm.pdf ]]; then
-            wm_img="$WATERMARK_DIR/default.png"
-            wm_out="$workdir/wm_$RANDOM.pdf"
+            local wm_img="$WATERMARK_DIR/default.png"
+            local wm_out="$workdir/wm_$(basename "$extra_pdf")"
 
             apply_watermark "$extra_pdf" "$wm_img" "$wm_out"
             final_pdf="$wm_out"
         fi
 
-        pdf_list="$pdf_list $final_pdf"
+        pdf_list+=("$final_pdf")
     done
+    shopt -u nullglob
 
     # =========================
-    # FINAL OUTPUT
+    # FINAL MERGE
     # =========================
-    final_pdf="$OUTPUT_DIR/${name}.pdf"
+    local final_pdf="$OUTPUT_DIR/${name}.pdf"
 
     echo "Generating: $final_pdf"
 
-    pdfunite $pdf_list "$final_pdf"
+    pdfunite "${pdf_list[@]}" "$final_pdf"
 
     rm -rf "$workdir"
 }
 
+export -f process_row
+
 # =========================
-# MAIN LOOP (MLR FIXED CSV INPUT)
+# MAIN LOOP (SAFE JSON STREAM)
 # =========================
-mlr --csv cat "$INPUT" | tail -n +2 | while IFS= read -r line; do
-    process_row "$line"
-done
+mlr --icsv --ojson cat "$INPUT" \
+    | jq -c '.[]' \
+    | while read -r row; do
+        process_row "$row"
+    done
