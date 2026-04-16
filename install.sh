@@ -13,8 +13,6 @@ sudo apt install -y \
     texlive-fonts-recommended \
     poppler-utils \
     imagemagick \
-    ghostscript \
-    mlr
 
 echo "Checking installations..."
 
@@ -29,13 +27,7 @@ check pdflatex
 check pdfunite
 check pdftoppm
 
-# CSV tool
-check mlr
-
 # ImageMagick (new + old compatibility)
 check magick || check convert
-
-# Ghostscript
-check gs
 
 echo "Done."
