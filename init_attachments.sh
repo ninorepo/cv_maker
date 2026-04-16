@@ -26,11 +26,11 @@ find "$ATTACH_DIR" -type f -name "*.wm.pdf" | while read -r pdf; do
 
     # apply watermark
     for img in "$workdir"/page-*.png; do
-        magick "$img" "$WATERMARK" -gravity center -compose over -composite "$img"
+        convert "$img" "$WATERMARK" -gravity center -compose over -composite "$img"
     done
 
     # images -> pdf
-    magick "$workdir"/page-*.png "$STAGING/${base}.pdf"
+    convert "$workdir"/page-*.png "$STAGING/${base}.pdf"
 
     rm -rf "$workdir"
 
