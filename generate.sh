@@ -1,8 +1,8 @@
 #!/bin/bash
 
 INPUT="data.csv"
-TEMPLATE1="template1.tex"
-TEMPLATE2="template2.tex"
+TEMPLATE1="templates/template_cover_letter.tex"
+TEMPLATE2="templates/template_cv.tex"
 
 EXTRA_PDF_DIR="extra_pdfs"
 OUTPUT_DIR="output"
