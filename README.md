@@ -39,12 +39,12 @@ project/
 |-- data.csv
 |-- templates/
 |   |-- cover_letter.tex
-|   `-- cv.tex
+|   \-- cv.tex
 |-- extra_pdfs/
 |   |-- 01_portfolio.pdf
 |   |-- 02_certificates.pdf
-|   `-- 03_appendix.pdf
-`-- output/
+|   \-- 03_appendix.pdf
+\-- output/
 
 ------------------------------------------------------------
 
