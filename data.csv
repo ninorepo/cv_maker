@@ -1,3 +1,3 @@
 company,company_address,applicant,home,phone,email,latest_education,current_education
-"PT Blah Blah Tbk.","John Doe",25,"New York, USA"
-alice_profile,Alice,30,"London, UK"
+"PT Blah Blah Tbk.","Jakarta, Indonesia","John Doe","New York, USA","08123456789","john@example.com","Bachelor","Master"
+"Alice Profile Ltd.","London HQ, UK","Alice","London, UK","08234567890","alice@example.com","Bachelor","MBA"
