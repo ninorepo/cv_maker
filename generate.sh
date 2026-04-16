@@ -51,7 +51,7 @@ apply_watermark() {
 export -f apply_watermark
 
 # =========================
-# SAFE LATEX ESCAPE
+# LATEX ESCAPE
 # =========================
 escape_latex() {
     printf '%s' "$1" | sed \
@@ -74,15 +74,29 @@ process_row() {
     declare -A data
     data=()
 
-    # parse JSON -> associative array
     while IFS="=" read -r k v; do
         data["$k"]="$v"
     done < <(echo "$json" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
 
-    # safe filename
-    local name
-    name="${data[0]:-output}"
-    name=$(echo "$name" | sed 's/[^a-zA-Z0-9]/_/g')
+    # =========================
+    # SAFE FILENAME (FINAL RULE)
+    # field1 + field2: lowercase, remove whitespace only
+    # =========================
+    local field1 field2 name
+
+    field1="${data[${header_arr[0]}]:-output}"
+    field2="${data[${header_arr[1]}]:-data}"
+
+    sanitize_no_space() {
+        echo "$1" \
+            | tr '[:upper:]' '[:lower:]' \
+            | tr -d '[:space:]'
+    }
+
+    field1=$(sanitize_no_space "$field1")
+    field2=$(sanitize_no_space "$field2")
+
+    name="${field1}_${field2}"
 
     local workdir
     workdir=$(mktemp -d -t pdfgen.XXXXXX)
@@ -102,7 +116,6 @@ process_row() {
         local content
         content=$(cat "$workdir/$tpl_file")
 
-        # replace placeholders
         for key in "${!data[@]}"; do
             val="${data[$key]}"
             val=$(escape_latex "$val")
@@ -141,7 +154,7 @@ process_row() {
     shopt -u nullglob
 
     # =========================
-    # FINAL MERGE
+    # FINAL OUTPUT
     # =========================
     local final_pdf="$OUTPUT_DIR/${name}.pdf"
 
@@ -155,7 +168,7 @@ process_row() {
 export -f process_row
 
 # =========================
-# MAIN LOOP (SAFE JSON STREAM)
+# MAIN LOOP
 # =========================
 mlr --icsv --ojson cat "$INPUT" \
     | jq -c '.[]' \
