@@ -4,24 +4,26 @@ set -euo pipefail
 ATTACH_DIR="attachments"
 WATERMARK_DIR="watermarks"
 TMP_ROOT=".tmp_render"
-STAGING="$TMP_ROOT/.attachments"
+STAGING="$TMP_ROOT/_attachments"
 WATERMARK="$WATERMARK_DIR/default.png"
 
 rm -rf "$TMP_ROOT"
 mkdir -p "$STAGING"
 
-# -----------------------------
-# 1. Process .wm.pdf files
-# -----------------------------
+# ---------------------------------------
+# 1. Process .wm.pdf (KEEP ORIGINAL NAME)
+# ---------------------------------------
 find "$ATTACH_DIR" -type f -name "*.wm.pdf" | while read -r pdf; do
 
-    base="$(basename "$pdf" .wm.pdf)"
-    echo "Watermarking: $pdf"
+    filename="$(basename "$pdf")"
+    base="${filename%.wm.pdf}"
 
-    workdir="$STAGING/__tmp_${base}"
+    echo "Watermarking: $filename"
+
+    workdir="$STAGING/.tmp_${base}"
     mkdir -p "$workdir"
 
-    # PDF -> images
+    # PDF -> PNG pages
     pdftoppm -png "$pdf" "$workdir/page"
 
     # apply watermark
@@ -29,17 +31,18 @@ find "$ATTACH_DIR" -type f -name "*.wm.pdf" | while read -r pdf; do
         convert "$img" "$WATERMARK" -gravity center -compose over -composite "$img"
     done
 
-    # images -> pdf
-    convert "$workdir"/page-*.png "$STAGING/${base}.pdf"
+    # PNG -> PDF (KEEP SAME NAME AS ORIGINAL FILE)
+    convert "$workdir"/page-*.png "$STAGING/$filename"
 
     rm -rf "$workdir"
 
 done
 
-# -----------------------------
-# 2. Copy normal PDFs (not .wm.pdf)
-# -----------------------------
+# ---------------------------------------
+# 2. Copy normal PDFs (UNCHANGED NAMES)
+# ---------------------------------------
 find "$ATTACH_DIR" -type f -name "*.pdf" ! -name "*.wm.pdf" | while read -r pdf; do
-    echo "Copying: $pdf"
-    cp "$pdf" "$STAGING/"
+    filename="$(basename "$pdf")"
+    echo "Copying: $filename"
+    cp "$pdf" "$STAGING/$filename"
 done
