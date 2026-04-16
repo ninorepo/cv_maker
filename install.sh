@@ -13,6 +13,7 @@ sudo apt install -y \
     texlive-fonts-recommended \
     poppler-utils \
     imagemagick \
+    img2pdf \
 
 echo "Checking installations..."
 
@@ -26,6 +27,7 @@ check pdflatex
 # PDF tools
 check pdfunite
 check pdftoppm
+check img2pdf
 
 # ImageMagick (new + old compatibility)
 check magick || check convert
