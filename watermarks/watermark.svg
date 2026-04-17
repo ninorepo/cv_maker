@@ -1,49 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="260mm" height="360mm" viewBox="0 0 260 360">
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="210mm" height="297mm"
+     viewBox="0 0 1000 1414">
 
-  <g opacity="0.8">
-
-    <text font-size="20"
-          font-weight="bold"
-          fill="grey">
-
-      <tspan x="-200" dy="0">
-        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
-      </tspan>
-
-      <tspan x="-150" dy="70">
-        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
-      </tspan>
-
-      <tspan x="-100" dy="70">
-        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
-      </tspan>
-
-      <tspan x="-50" dy="70">
-        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
-      </tspan>
-
-      <tspan x="0" dy="70">
-        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
-      </tspan>
-
-      <tspan x="50" dy="70">
-        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
-      </tspan>
-
-      <tspan x="100" dy="70">
-        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
-      </tspan>
-
-      <tspan x="150" dy="70">
-        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
-      </tspan>
-
-      <tspan x="200" dy="70">
-        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
-      </tspan>
-
-    </text>
-
-  </g>
+  <text x="500" y="707"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        fill="red"
+        fill-opacity="0.25"
+        font-size="80"
+        font-family="Arial, sans-serif"
+        transform="rotate(-45 500 707)">
+    {{text}}
+  </text>
 
 </svg>
