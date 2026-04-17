@@ -9,7 +9,6 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
     echo "DIR: $dir"
 
     svg="$dir/watermark.svg"
-    wm_pdf="$dir/watermark.pdf"
     attach_dir="$dir/attachments"
 
     if [ ! -f "$svg" ]; then
@@ -22,30 +21,39 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
         continue
     fi
 
-    # === convert SVG → PDF (once per folder) ===
-    echo "  converting SVG → PDF"
-    rsvg-convert -f pdf -o "$wm_pdf" "$svg"
+    echo "  converting SVG → PNG watermark"
+    rsvg-convert -f png -o "$dir/watermark.png" -b none "$svg"
 
     echo "  scanning PDFs in: $attach_dir"
 
     found_any=false
 
-    while IFS= read -r pdf; do
+    find "$attach_dir" -type f -iname "*.wm.pdf" | while read -r pdf; do
         found_any=true
         echo "  found: $pdf"
 
-        tmp="${pdf}.tmp.pdf"
+        base="${pdf%.pdf}"
 
-        # === overlay using Ghostscript ===
-        gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite \
-            -sOutputFile="$tmp" \
-            -c "<< /EndPage { pop 2 eq } >> setpagedevice" \
-            -f "$pdf" "$wm_pdf"
+        echo "  converting PDF → PNG pages"
+        pdftoppm -png -r 300 "$pdf" "$base"
 
-        mv "$tmp" "$pdf"
+        for page in "${base}"-*.png; do
+            out="${page%.png}.wm.png"
+
+            echo "  overlaying watermark on $page"
+            convert "$page" "$dir/watermark.png" \
+                -gravity center -composite "$out"
+        done
+
+        echo "  rebuilding PDF"
+        img2pdf "${base}"-*.wm.png -o "$pdf"
+
+        echo "  cleaned temp images"
+        rm -f "${base}"-*.png
+        rm -f "${base}"-*.wm.png
 
         echo "  updated: $pdf"
-    done < <(find "$attach_dir" -type f -iname "*.wm.pdf")
+    done
 
     if [ "$found_any" = false ]; then
         echo "  no *.wm.pdf found"
