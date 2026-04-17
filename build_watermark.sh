@@ -16,28 +16,24 @@ while IFS= read -r -d '' dir; do
     tile="$dir/_wm_tile.png"
 
     # --------------------------------------------------
-    # 1. draw text (NO transparency here)
+    # 1. FORCE text rendering (no annotate bug)
     # --------------------------------------------------
-    convert -size 600x300 xc:white \
-        -gravity center \
+    convert -background white \
+        -fill "rgba(0,0,0,0.15)" \
         -font DejaVu-Sans-Bold \
         -pointsize 40 \
-        -fill "gray30" \
-        -annotate 45 "$wm_text" \
+        -gravity center \
+        -size 600x300 \
+        caption:"$wm_text" \
         "$tile"
 
     # --------------------------------------------------
-    # 2. apply transparency safely
+    # 2. rotate AFTER rendering (safe step)
     # --------------------------------------------------
-    convert "$tile" \
-        -alpha set \
-        -channel A \
-        -evaluate set 20% \
-        +channel \
-        "$tile"
+    convert "$tile" -rotate 45 "$tile"
 
     # --------------------------------------------------
-    # 3. tile across A4 safely
+    # 3. tile safely
     # --------------------------------------------------
     convert -size 2480x3508 tile:"$tile" \
         -background white -flatten \
