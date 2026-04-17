@@ -3,47 +3,28 @@ set -euo pipefail
 
 TMP_ROOT=".tmp_render"
 
-echo "==> Starting VECTOR watermark burn process..."
+find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir; do
+    svg="$dir/watermark.svg"
+    attach_dir="$dir/attachment"
 
-find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" -print0 |
-while IFS= read -r -d '' rowdir; do
+    # skip if missing
+    [ -f "$svg" ] || continue
+    [ -d "$attach_dir" ] || continue
 
-    echo "Row: $(basename "$rowdir")"
+    find "$attach_dir" -type f -name "*.wm.pdf" | while read -r pdf; do
+        tmp="${pdf}.tmp.pdf"
 
-    WATERMARK_SVG="$rowdir/watermark.svg"
-    WATERMARK_PDF="$rowdir/watermark.pdf"
-    ATTACH_DIR="$rowdir/attachments"
+        convert -density 300 \
+            "$pdf" \
+            "$svg" \
+            -gravity center -composite \
+            "$tmp"
 
-    [[ -f "$WATERMARK_SVG" ]] || continue
-    [[ -d "$ATTACH_DIR" ]] || continue
+        # replace original
+        mv "$tmp" "$pdf"
 
-    # --------------------------------------------------
-    # 1. SVG → PDF (VECTOR WATERMARK)
-    # --------------------------------------------------
-    rsvg-convert "$WATERMARK_SVG" \
-        -f pdf \
-        -o "$WATERMARK_PDF"
-
-    # --------------------------------------------------
-    # 2. APPLY TO EACH PDF
-    # --------------------------------------------------
-    find "$ATTACH_DIR" -maxdepth 1 -type f -name "*.wm.pdf" -print0 |
-    while IFS= read -r -d '' pdf; do
-
-        filename="$(basename "$pdf")"
-        echo "  Burning: $filename"
-
-        output_pdf="${pdf%.wm.pdf}.pdf"
-
-        # --------------------------------------------------
-        # 3. VECTOR OVERLAY (NO RASTERIZATION)
-        # --------------------------------------------------
-        pdftk "$pdf" \
-            background "$WATERMARK_PDF" \
-            output "$output_pdf"
-
+        echo "Updated: $pdf"
     done
-
 done
 
-echo "==> VECTOR watermark burn complete"
+echo "Done."
