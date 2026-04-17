@@ -3,7 +3,7 @@ set -euo pipefail
 
 TMP_ROOT=".tmp_render"
 
-FONT="DejaVu-Sans-Bold"
+FONT="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" -print0 |
 while IFS= read -r -d '' dir; do
@@ -17,23 +17,30 @@ while IFS= read -r -d '' dir; do
     wm_png="$dir/_watermark.png"
 
     # --------------------------------------------------
-    # 1. CREATE TILE (stable text rendering)
+    # 1. FORCE TEXT RENDER (MOST STABLE IM PATH)
     # --------------------------------------------------
-    convert -size 600x300 xc:white \
+    convert -background white \
+        -fill black \
         -font "$FONT" \
         -pointsize 40 \
-        -fill gray30 \
-        -gravity center \
-        -annotate 0 "$wm_text" \
+        label:"$wm_text" \
         "$tile"
 
     # --------------------------------------------------
-    # 2. ROTATE AFTER (safe, but separate file)
+    # 2. ENSURE IMAGE EXISTS (DEBUG STEP)
+    # --------------------------------------------------
+    identify "$tile" || {
+        echo "ERROR: tile not created"
+        exit 1
+    }
+
+    # --------------------------------------------------
+    # 3. ROTATE (SAFE)
     # --------------------------------------------------
     convert "$tile" -rotate 45 "$tile"
 
     # --------------------------------------------------
-    # 3. TILE TO A4
+    # 4. TILE TO A4
     # --------------------------------------------------
     convert -size 2480x3508 tile:"$tile" \
         -background white -flatten \
