@@ -28,11 +28,11 @@ check pdflatex
 # PDF tools
 check pdfunite
 check pdftoppm
-check img2pd
+check img2pdf
 
 # ImageMagick (new + old compatibility)
 check magick
 check convert
-check rsvg-conbert
+check rsvg-convert
 
 echo "Done."
