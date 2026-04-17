@@ -2,36 +2,42 @@
      width="210mm" height="297mm"
      viewBox="0 0 1000 1414">
 
-  <!-- Top (near upper area) -->
-  <text x="500" y="200"
+  <!-- Top -->
+  <text x="500" y="300"
         text-anchor="middle"
         dominant-baseline="middle"
-        font-size="60"
-        fill="red"
-        fill-opacity="0.10"
-        transform="rotate(-45 500 200)">
+        font-size="30"
+        font-family="Arial"
+        font-weight="bold"
+        fill="black"
+        fill-opacity="0.8"
+        transform="rotate(-45 500 300)">
     {{text}}
   </text>
 
-  <!-- Middle (true center) -->
-  <text x="500" y="707"
+  <!-- Middle -->
+  <text x="500" y="700"
         text-anchor="middle"
         dominant-baseline="middle"
-        font-size="60"
-        fill="red"
-        fill-opacity="0.12"
-        transform="rotate(-45 500 707)">
+        font-size="30"
+        font-family="Arial"
+        font-weight="bold"
+        fill="black"
+        fill-opacity="0.8"
+        transform="rotate(-45 500 700)">
     {{text}}
   </text>
 
-  <!-- Bottom (near lower area) -->
-  <text x="500" y="1210"
+  <!-- Bottom -->
+  <text x="500" y="1100"
         text-anchor="middle"
         dominant-baseline="middle"
-        font-size="60"
-        fill="red"
-        fill-opacity="0.10"
-        transform="rotate(-45 500 1210)">
+        font-size="30"
+        font-family="Arial"
+        font-weight="bold"
+        fill="black"
+        fill-opacity="0.8"
+        transform="rotate(-45 500 1100)">
     {{text}}
   </text>
 
