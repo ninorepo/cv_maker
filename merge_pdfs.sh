@@ -5,7 +5,7 @@ TMP_ROOT=".tmp_render"
 CSV_FILE="data.csv"
 OUTPUT_DIR="output"
 
-mkdir -p "$OUTPUT_DIR"
+#mkdir -p "$OUTPUT_DIR"
 
 echo "==> Starting per-row PDF merge..."
 
@@ -20,19 +20,18 @@ while IFS=, read -r id f2 f3 _; do
     # skip header
     [[ "$id" == "id" ]] && continue
 
-    # trim quotes + spaces
+    # trim quotes
     id="${id//\"/}"
     f2="${f2//\"/}"
     f3="${f3//\"/}"
 
-    # store
     FIELD2_MAP["$id"]="$f2"
     FIELD3_MAP["$id"]="$f3"
 
 done < "$CSV_FILE"
 
 # --------------------------------------------------
-# helper: clean field
+# helper: clean filename
 # --------------------------------------------------
 clean() {
     echo "$1" \
@@ -41,17 +40,19 @@ clean() {
 }
 
 # --------------------------------------------------
-# 2. Process each row folder
+# 2. Process each CSV row id (source of truth)
 # --------------------------------------------------
-find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" -print0 |
-while IFS= read -r -d '' rowdir; do
-
-    rowid="$(basename "$rowdir")"
+for rowid in "${!FIELD2_MAP[@]}"; do
 
     f2="${FIELD2_MAP[$rowid]}"
     f3="${FIELD3_MAP[$rowid]}"
 
     [[ -n "$f2" && -n "$f3" ]] || continue
+
+    rowdir="$TMP_ROOT/.$rowid"
+    ATTACH_DIR="$rowdir/attachments"
+
+    [[ -d "$rowdir" ]] || continue
 
     # --------------------------------------------------
     # filename rule: field2_field3.pdf
@@ -60,45 +61,58 @@ while IFS= read -r -d '' rowdir; do
     f3_clean="$(clean "$f3")"
 
     filename="${f2_clean}_${f3_clean}.pdf"
+    OUTPUT_PDF="$OUTPUT_DIR/$filename"
 
     echo "Row: $rowid → $filename"
 
-    ATTACH_DIR="$rowdir/attachments"
-    OUTPUT_PDF="$OUTPUT_DIR/$filename"
-
-    pdfs=()
+    pdfs_main=()
+    pdfs_attach=()
 
     # --------------------------------------------------
-    # PDFs in row folder (excluding attachments)
+    # 3. Main PDFs (row folder, exclude attachments)
     # --------------------------------------------------
     while IFS= read -r -d '' f; do
-        pdfs+=("$f")
-    done < <(find "$rowdir" -maxdepth 1 -type f -name "*.pdf" ! -path "*/attachments/*" -print0)
+        pdfs_main+=("$f")
+    done < <(
+        find "$rowdir" -maxdepth 1 -type f -name "*.pdf" -print0
+    )
 
-    # --------------------------------------------------
-    # PDFs in attachments
-    # --------------------------------------------------
-    if [[ -d "$ATTACH_DIR" ]]; then
-        while IFS= read -r -d '' f; do
-            pdfs+=("$f")
-        done < <(find "$ATTACH_DIR" -maxdepth 1 -type f -name "*.pdf" -print0)
+    # sort main PDFs
+    if [[ ${#pdfs_main[@]} -gt 0 ]]; then
+        IFS=$'\n' pdfs_main=($(printf "%s\n" "${pdfs_main[@]}" | sort))
+        unset IFS
     fi
 
     # --------------------------------------------------
-    # sort deterministically
+    # 4. Attachment PDFs
     # --------------------------------------------------
+    if [[ -d "$ATTACH_DIR" ]]; then
+        while IFS= read -r -d '' f; do
+            pdfs_attach+=("$f")
+        done < <(
+            find "$ATTACH_DIR" -type f -name "*.pdf" -print0
+        )
+
+        if [[ ${#pdfs_attach[@]} -gt 0 ]]; then
+            IFS=$'\n' pdfs_attach=($(printf "%s\n" "${pdfs_attach[@]}" | sort))
+            unset IFS
+        fi
+    fi
+
+    # --------------------------------------------------
+    # 5. Combine in correct order
+    # --------------------------------------------------
+    pdfs=("${pdfs_main[@]}" "${pdfs_attach[@]}")
+
     if [[ ${#pdfs[@]} -eq 0 ]]; then
         echo "  No PDFs found"
         continue
     fi
 
-    IFS=$'\n' sorted=($(printf "%s\n" "${pdfs[@]}" | sort))
-    unset IFS
-
     # --------------------------------------------------
-    # merge
+    # 6. Merge
     # --------------------------------------------------
-    pdfunite "${sorted[@]}" "$OUTPUT_PDF"
+    pdfunite "${pdfs[@]}" "$OUTPUT_PDF"
 
     echo "  Created: $OUTPUT_PDF"
 
