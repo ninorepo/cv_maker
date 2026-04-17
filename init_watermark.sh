@@ -2,10 +2,11 @@
 set -euo pipefail
 
 CSV_FILE="data.csv"
-WATERMARK_FILE="watermarks/watermark.txt"
+WATERMARK_TXT_TEMPLATE="watermarks/watermark.txt"
+WATERMARK_SVG_TEMPLATE="watermarks/watermark.svg"
 TMP_ROOT=".tmp_render"
 
-awk -v wm_file="$WATERMARK_FILE" -v root="$TMP_ROOT" '
+awk -v wm_file="$WATERMARK_TXT_TEMPLATE" -v root="$TMP_ROOT" '
 
 function trim_quotes(s) {
     sub(/^"/, "", s)
@@ -58,12 +59,20 @@ NR == 1 {
 
     outdir = root "/." row_id
 
+    # ❗ CHECK: directory must already exist
+    if (system("[ -d \"" outdir "\" ]") != 0) {
+        print "ERROR: directory does not exist: " outdir > "/dev/stderr"
+        exit 1
+    }
+
+    # load watermark.txt template
     wm_text = ""
     while ((getline l < wm_file) > 0) {
         wm_text = wm_text l "\n"
     }
     close(wm_file)
 
+    # replace {{column}} placeholders in watermark.txt
     for (k in map) {
         safe = map[k]
         gsub(/\\/, "\\\\", safe)
@@ -71,8 +80,31 @@ NR == 1 {
         gsub("{{" k "}}", safe, wm_text)
     }
 
-    print wm_text > (outdir "/watermark.txt")
-    close(outdir "/watermark.txt")
-}
+    # save watermark.txt
+    txt_path = outdir "/watermark.txt"
+    print wm_text > txt_path
+    close(txt_path)
 
+}
 ' "$CSV_FILE"
+
+# === SVG processing ===
+
+find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir; do
+    txt="$dir/watermark.txt"
+    svg="$dir/watermark.svg"
+
+    # copy svg template
+    cp "$WATERMARK_SVG_TEMPLATE" "$svg"
+
+    # read text content
+    text=$(cat "$txt")
+
+    # escape for sed
+    text_escaped=$(printf '%s\n' "$text" | sed -e 's/[\/&]/\\&/g')
+
+    # replace all {{text}} in svg
+    sed -i "s/{{text}}/$text_escaped/g" "$svg"
+done
+
+echo "Done."
