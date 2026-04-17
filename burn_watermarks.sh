@@ -22,7 +22,7 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
     fi
 
     echo "  converting SVG → PNG watermark"
-    rsvg-convert -f png -o "$dir/watermark.png" -b none "$svg"
+    rsvg-convert -f png -w 2480 -h 3508 -o "$dir/watermark.png" -b none "$svg"
 
     echo "  scanning PDFs in: $attach_dir"
 
