@@ -9,6 +9,7 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
     echo "DIR: $dir"
 
     svg="$dir/watermark.svg"
+    wm_pdf="$dir/watermark.pdf"
     attach_dir="$dir/attachments"
 
     if [ ! -f "$svg" ]; then
@@ -21,6 +22,10 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
         continue
     fi
 
+    # === convert SVG → PDF (once per folder) ===
+    echo "  converting SVG → PDF"
+    rsvg-convert -f pdf -o "$wm_pdf" "$svg"
+
     echo "  scanning PDFs in: $attach_dir"
 
     found=0
@@ -31,11 +36,11 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
 
         tmp="${pdf}.tmp.pdf"
 
-        convert -density 300 \
-            "$pdf" \
-            "$svg" \
-            -gravity center -composite \
-            "$tmp"
+        # === overlay using Ghostscript ===
+        gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite \
+            -sOutputFile="$tmp" \
+            -c "<< /EndPage { 2 eq { pop false } { true } ifelse } >> setpagedevice" \
+            -f "$pdf" "$wm_pdf"
 
         mv "$tmp" "$pdf"
 
