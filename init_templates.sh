@@ -6,22 +6,23 @@ TMP_ROOT=".tmp_render"
 CSV_FILE="data.csv"
 
 awk -v template_dir="$TEMPLATE_DIR" -v root="$TMP_ROOT" '
+
 function trim_quotes(s) {
     sub(/^"/, "", s)
     sub(/"$/, "", s)
     return s
 }
 
-# Basic CSV parser (supports quoted values, no multiline support)
-function parse_csv(line,   i, c, field, inq, n, ch) {
+function parse_csv(line,   i, ch, field, inq, n) {
     n = 0
     field = ""
     inq = 0
+    delete values
 
     for (i = 1; i <= length(line); i++) {
         ch = substr(line, i, 1)
 
-        if (ch == "\"" ) {
+        if (ch == "\"") {
             inq = !inq
         } else if (ch == "," && !inq) {
             values[++n] = trim_quotes(field)
@@ -36,23 +37,8 @@ function parse_csv(line,   i, c, field, inq, n, ch) {
 }
 
 NR == 1 {
-    # headers
     n = parse_csv($0)
-    for (i = 1; i <= n; i++) {
-        headers[i] = values[i]
-    }
-
-    # validate id exists
-    has_id = 0
-    for (i = 1; i <= n; i++) {
-        if (headers[i] == "id") has_id = 1
-    }
-
-    if (!has_id) {
-        print "ERROR: missing required column 'id'" > "/dev/stderr"
-        exit 1
-    }
-
+    for (i = 1; i <= n; i++) headers[i] = values[i]
     next
 }
 
@@ -61,38 +47,33 @@ NR == 1 {
     n = parse_csv($0)
 
     delete map
-
     for (i = 1; i <= n; i++) {
         map[headers[i]] = values[i]
     }
 
     row_id = map["id"]
+    if (row_id == "") next
 
-    if (row_id == "") {
-        print "ERROR: empty id field" > "/dev/stderr"
-        next
-    }
-
-    # sanitize id (VERY IMPORTANT)
     gsub(/[^a-zA-Z0-9_-]/, "", row_id)
 
     outdir = root "/." row_id
     system("mkdir -p \"" outdir "\"")
 
-    # copy templates (including hidden files)
     system("cp -r " template_dir "/. " outdir "/")
 
-    # process all files
     cmd = "find " outdir " -type f"
     while ((cmd | getline file) > 0) {
 
         tmp = file ".tmp"
 
-        while ((getline line < file) > 0) {
+        while ((getline l < file) > 0) {
             for (k in map) {
-                gsub("{{" k "}}", map[k], line)
+                safe = map[k]
+                gsub(/\\/, "\\\\", safe)
+                gsub(/&/, "\\&", safe)
+                gsub("{{" k "}}", safe, l)
             }
-            print line > tmp
+            print l > tmp
         }
 
         close(file)
@@ -100,5 +81,8 @@ NR == 1 {
 
         system("mv " tmp " " file)
     }
+
+    close(cmd)
 }
+
 ' "$CSV_FILE"
