@@ -14,6 +14,7 @@ sudo apt install -y \
     poppler-utils \
     imagemagick \
     img2pdf \
+    librsvg2-bin \
 
 echo "Checking installations..."
 
@@ -27,9 +28,11 @@ check pdflatex
 # PDF tools
 check pdfunite
 check pdftoppm
-check img2pdf
+check img2pd
 
 # ImageMagick (new + old compatibility)
-check magick || check convert
+check magick
+check convert
+check rsvg-conbert
 
 echo "Done."
