@@ -3,10 +3,7 @@
   <!-- Rotated watermark -->
   <g transform="rotate(45 130 180)" opacity="0.5">
 
-    <!-- Big background box -->
-    <rect x="0" y="0" width="260" height="360"
-          fill="none" stroke="black" stroke-width="0.3"/>
-
+    
     <!-- Text grid -->
     <text x="-200" y="40"
           font-size="20"
