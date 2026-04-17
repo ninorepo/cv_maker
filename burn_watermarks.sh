@@ -28,10 +28,10 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
 
     echo "  scanning PDFs in: $attach_dir"
 
-    found=0
+    found_any=false
 
-    find "$attach_dir" -type f -name "*.wm.pdf" | while read -r pdf; do
-        found=1
+    while IFS= read -r pdf; do
+        found_any=true
         echo "  found: $pdf"
 
         tmp="${pdf}.tmp.pdf"
@@ -39,15 +39,15 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
         # === overlay using Ghostscript ===
         gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite \
             -sOutputFile="$tmp" \
-            -c "<< /EndPage { 2 eq { pop false } { true } ifelse } >> setpagedevice" \
+            -c "<< /EndPage { pop 2 eq } >> setpagedevice" \
             -f "$pdf" "$wm_pdf"
 
         mv "$tmp" "$pdf"
 
         echo "  updated: $pdf"
-    done
+    done < <(find "$attach_dir" -type f -iname "*.wm.pdf")
 
-    if [ "$found" -eq 0 ]; then
+    if [ "$found_any" = false ]; then
         echo "  no *.wm.pdf found"
     fi
 done
