@@ -12,8 +12,8 @@ sudo apt install -y \
     texlive-latex-extra \
     texlive-fonts-recommended \
     poppler-utils \
-    imagemagick \
-    img2pdf \
+    #imagemagick \
+    #img2pdf \
     librsvg2-bin \
 
 echo "Checking installations..."
