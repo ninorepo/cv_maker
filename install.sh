@@ -12,6 +12,7 @@ sudo apt install -y \
     texlive-latex-extra \
     texlive-fonts-recommended \
     poppler-utils \
+    ghostscript \
     #imagemagick \
     #img2pdf \
     librsvg2-bin \
@@ -34,5 +35,6 @@ check pdfunite
 #check magick
 #check convert
 check rsvg-convert
+check gs
 
 echo "Done."
