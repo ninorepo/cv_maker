@@ -6,20 +6,43 @@ TMP_ROOT=".tmp_render"
 
 echo "==> Copying attachments into row folders..."
 
-# loop all row folders
-find "$TMP_ROOT" -maxdepth 1 -type d -name ".*" | while read -r rowdir; do
+# --------------------------------------------------
+# 1. Validate source
+# --------------------------------------------------
+if [[ ! -d "$ATTACH_DIR" ]]; then
+    echo "ERROR: attachments directory not found"
+    exit 1
+fi
 
-    echo "Processing row: $(basename "$rowdir")"
+# --------------------------------------------------
+# 2. Process ONLY valid row folders
+#    (dot + alphanumeric safe IDs)
+# --------------------------------------------------
+find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d \
+    -name ".[0-9a-zA-Z_-]*" -print0 |
+while IFS= read -r -d '' rowdir; do
 
-    # create per-row attachments folder
+    base="$(basename "$rowdir")"
+
+    # extra safety: exclude wrong folders
+    [[ "$base" == "attachments" ]] && continue
+    [[ "$base" == .work* ]] && continue
+
+    echo "Processing row: $base"
+
+    # --------------------------------------------------
+    # 3. Create attachments folder ONLY inside row
+    # --------------------------------------------------
     ROW_ATTACH="$rowdir/attachments"
     mkdir -p "$ROW_ATTACH"
 
-    # skip if source doesn't exist
-    [[ -d "$ATTACH_DIR" ]] || continue
-
-    # copy all PDFs into row attachments folder
-    find "$ATTACH_DIR" -type f -name "*.pdf" -exec cp -f {} "$ROW_ATTACH/" \;
+    # --------------------------------------------------
+    # 4. Copy PDFs into row attachments
+    # --------------------------------------------------
+    find "$ATTACH_DIR" -type f -name "*.pdf" -print0 |
+    while IFS= read -r -d '' file; do
+        cp -f "$file" "$ROW_ATTACH/"
+    done
 
 done
 
