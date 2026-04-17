@@ -3,7 +3,8 @@ set -euo pipefail
 
 TMP_ROOT=".tmp_render"
 
-find "$TMP_ROOT" -maxdepth 1 -type d -name ".*" | while read -r dir; do
+find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" -print0 |
+while IFS= read -r -d '' dir; do
 
     wm_txt="$dir/watermark.txt"
     wm_png="$dir/_watermark.png"
@@ -12,21 +13,34 @@ find "$TMP_ROOT" -maxdepth 1 -type d -name ".*" | while read -r dir; do
 
     wm_text="$(cat "$wm_txt")"
 
-    # escape for shell safety
-    wm_text="${wm_text//\"/\\\"}"
-
     tile="$dir/_wm_tile.png"
 
-    # create tile
-    convert -size 600x300 xc:none \
+    # --------------------------------------------------
+    # 1. draw text (NO transparency here)
+    # --------------------------------------------------
+    convert -size 600x300 xc:white \
         -gravity center \
-        -fill 'rgba(128,128,128,0.15)' \
         -font DejaVu-Sans-Bold \
         -pointsize 40 \
+        -fill "gray30" \
         -annotate 45 "$wm_text" \
         "$tile"
 
-    # tile across A4
-    convert -size 2480x3508 tile:"$tile" "$wm_png"
+    # --------------------------------------------------
+    # 2. apply transparency safely
+    # --------------------------------------------------
+    convert "$tile" \
+        -alpha set \
+        -channel A \
+        -evaluate set 20% \
+        +channel \
+        "$tile"
+
+    # --------------------------------------------------
+    # 3. tile across A4 safely
+    # --------------------------------------------------
+    convert -size 2480x3508 tile:"$tile" \
+        -background white -flatten \
+        "$wm_png"
 
 done
