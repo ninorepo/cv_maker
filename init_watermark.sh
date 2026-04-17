@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TMP_ROOT=".tmp_render"
 CSV_FILE="data.csv"
 WATERMARK_FILE="watermarks/watermark.txt"
+TMP_ROOT=".tmp_render"
 
-awk -v root="$TMP_ROOT" -v wm_file="$WATERMARK_FILE" '
+awk -v wm_file="$WATERMARK_FILE" -v root="$TMP_ROOT" '
 
 function trim_quotes(s) {
     sub(/^"/, "", s)
