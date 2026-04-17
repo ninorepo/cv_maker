@@ -9,7 +9,7 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
     echo "DIR: $dir"
 
     svg="$dir/watermark.svg"
-    attach_dir="$dir/attachment"
+    attach_dir="$dir/attachments"
 
     if [ ! -f "$svg" ]; then
         echo "  skip: no watermark.svg"
@@ -17,7 +17,7 @@ find "$TMP_ROOT" -mindepth 1 -maxdepth 1 -type d -name ".*" | while read -r dir;
     fi
 
     if [ ! -d "$attach_dir" ]; then
-        echo "  skip: no attachment/"
+        echo "  skip: no attachments/"
         continue
     fi
 
