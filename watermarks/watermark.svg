@@ -1,61 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="260mm" height="360mm" viewBox="0 0 260 360">
 
-  <!-- Rotated watermark -->
-  <g transform="rotate(45 130 180)" opacity="0.5">
+  <g opacity="0.8">
 
-    
-    <!-- Text grid -->
-    <text x="-200" y="40"
-          font-size="20"
+    <text font-size="20"
           font-weight="bold"
-          fill="red">
+          fill="grey">
 
-      <!-- Each line = repeated inline placeholders -->
       <tspan x="-200" dy="0">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
+        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
       </tspan>
 
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
+      <tspan x="-150" dy="70">
+        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
       </tspan>
 
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
+      <tspan x="-100" dy="70">
+        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
       </tspan>
 
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
+      <tspan x="-50" dy="70">
+        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
       </tspan>
 
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
+      <tspan x="0" dy="70">
+        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
       </tspan>
 
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
+      <tspan x="50" dy="70">
+        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
       </tspan>
 
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
+      <tspan x="100" dy="70">
+        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
       </tspan>
 
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
+      <tspan x="150" dy="70">
+        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
       </tspan>
 
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
-      </tspan>
-
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
-      </tspan>
-
-      <tspan x="-200" dy="30">
-        {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}} {{text}}
+      <tspan x="200" dy="70">
+        {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}   {{text}}
       </tspan>
 
     </text>
 
   </g>
+
 </svg>
