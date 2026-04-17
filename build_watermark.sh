@@ -13,29 +13,32 @@ while IFS= read -r -d '' dir; do
 
     wm_text="$(cat "$wm_txt")"
 
-    tile="$dir/_wm_tile.png"
+    # --------------------------------------------------
+    # 1. CREATE SVG (TEXT SOURCE)
+    # --------------------------------------------------
+    cat > "$dir/_wm.svg" <<EOF
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300">
+  <text x="50%" y="50%"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        font-size="40"
+        fill="black"
+        opacity="0.15"
+        transform="rotate(-45 300 150)">
+    $wm_text
+  </text>
+</svg>
+EOF
 
     # --------------------------------------------------
-    # 1. FORCE text rendering (no annotate bug)
+    # 2. SVG → PNG TILE (NO IMAGEMAGICK TEXT BUGS)
     # --------------------------------------------------
-    convert -background white \
-        -fill "rgba(0,0,0,0.15)" \
-        -font DejaVu-Sans-Bold \
-        -pointsize 40 \
-        -gravity center \
-        -size 600x300 \
-        caption:"$wm_text" \
-        "$tile"
+    rsvg-convert "$dir/_wm.svg" -w 600 -h 300 -o "$dir/_wm_tile.png"
 
     # --------------------------------------------------
-    # 2. rotate AFTER rendering (safe step)
+    # 3. TILE INTO A4 WATERMARK
     # --------------------------------------------------
-    convert "$tile" -rotate 45 "$tile"
-
-    # --------------------------------------------------
-    # 3. tile safely
-    # --------------------------------------------------
-    convert -size 2480x3508 tile:"$tile" \
+    convert -size 2480x3508 tile:"$dir/_wm_tile.png" \
         -background white -flatten \
         "$wm_png"
 
