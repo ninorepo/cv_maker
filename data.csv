@@ -1,3 +1,3 @@
-id,company,company_address,applicant,birthplace,home,phone,email,latest_education,current_education
-1,"PT Blah Blah Tbk.","Jakarta, Indonesia","John Doe","New York, 4-5-1990","New York, USA","08123456789","john@example.com","Bachelor","Master"
-2,"Alice Profile Ltd.","London HQ, UK","Alice","London, 6-8-1990","London, UK","08234567890","alice@example.com","Bachelor","MBA"
+id,applicant,company,company_address,position,birthplace,home,phone,email,latest_education,current_education
+1,"John","PT. Nusa Tenggara Timur Tbk.", "Jakarta, Indonesia","Teknisi","New York, 4-5-1990","New York, USA","08123456789","john@example.com","Bachelor","Master"
+2,"Alice","PT. Nusantara Tbk.", "Surabaya, Indonesia","Admin","London, 6-8-1990","London, UK","08234567890","alice@example.com","Bachelor","MBA"
